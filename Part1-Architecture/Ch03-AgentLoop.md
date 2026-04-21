@@ -139,106 +139,106 @@ flowchart TD
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│                        queryLoop() Entry                            │
-│  Initialize State, budgetTracker, config, pendingMemoryPrefetch     │
+│                        queryLoop() Entry                             │
+│  Initialize State, budgetTracker, config, pendingMemoryPrefetch      │
 └──────────────┬───────────────────────────────────────────────────────┘
                │
                ▼
-┌──────────────────────────────────────────────────┐
-│              while (true) {                      │
+┌───────────────────────────────────────────────────┐
+│              while (true) {                       │
 │  Destructure state → messages, toolUseContext, ...│
-│  yield { type: 'stream_request_start' }          │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  ┌─────────────────────────────────────────┐     │
-│  │ Phase 1: Context Preprocessing           │     │
-│  │ applyToolResultBudget                    │     │
-│  │ → snipCompact (HISTORY_SNIP)             │     │
-│  │ → microcompact                           │     │
-│  │ → contextCollapse (CONTEXT_COLLAPSE)     │     │
-│  │ → autocompact ───── See Ch.9 ──────────  │     │
-│  └──────────────┬──────────────────────────┘     │
-│                 │                                 │
-│                 ▼                                 │
-│  ┌─────────────────────────────────────────┐     │
-│  │ Phase 2: Blocking limit check            │     │
-│  │ token count > hard limit ?               │     │
-│  │   YES → return {reason:'blocking_limit'} │     │
-│  └──────────────┬──────────────────────────┘     │
-│                 │ NO                              │
-│                 ▼                                 │
-│  ┌─────────────────────────────────────────┐     │
-│  │ Phase 3: API Call ── See Ch.5 & Ch.13 ── │     │
-│  │ attemptWithFallback loop                  │     │
-│  │ callModel({                              │     │
-│  │   messages: prependUserContext(...)       │     │
-│  │   systemPrompt: appendSystemContext(...) │     │
-│  │ })                                       │     │
-│  │                                          │     │
-│  │ Stream response → assistantMessages[]    │     │
-│  │                → toolUseBlocks[]         │     │
-│  │ FallbackTriggeredError → switch model    │     │
-│  └──────────────┬──────────────────────────┘     │
-│                 │                                 │
-│                 ▼                                 │
-│  ┌─────────────────────────────────────────┐     │
-│  │ Phase 4: Abort check                     │     │
-│  │ abortController.signal.aborted ?        │     │
-│  │   YES → return {reason:'aborted_*'}     │     │
-│  └──────────────┬──────────────────────────┘     │
-│                 │ NO                              │
-│                 ▼                                 │
-│  ┌─────────────────────────────────────────┐     │
-│  │ Phase 5: needsFollowUp == false branch   │     │
-│  │ (model did not return tool_use)          │     │
-│  │                                          │     │
-│  │ ┌─ prompt-too-long recovery ──────────┐ │     │
-│  │ │ collapse drain → reactive compact   │ │     │
-│  │ │ Success → state=next; continue      │ │     │
-│  │ └────────────────────────────────────-┘ │     │
-│  │ ┌─ max_output_tokens recovery ────────┐ │     │
-│  │ │ escalate(8k→64k) → recovery(×3)    │ │     │
-│  │ │ Success → state=next; continue      │ │     │
-│  │ └────────────────────────────────────-┘ │     │
-│  │ ┌─ stop hooks ── See Ch.16 ──────────┐ │     │
-│  │ │ blockingErrors → state=next;continue│ │     │
-│  │ └────────────────────────────────────-┘ │     │
-│  │ ┌─ token budget check ────────────────┐ │     │
-│  │ │ budget remaining → state=next;      │ │     │
-│  │ │ continue                            │ │     │
-│  │ └────────────────────────────────────-┘ │     │
-│  │                                          │     │
-│  │ return { reason: 'completed' }           │     │
-│  └──────────────────────────────────────-──┘     │
-│                 │                                 │
-│           needsFollowUp == true                  │
-│                 │                                 │
-│                 ▼                                 │
-│  ┌─────────────────────────────────────────┐     │
-│  │ Phase 6: Tool Execution                  │     │
-│  │ streamingToolExecutor.getRemainingResults│     │
-│  │ or runTools() ── See Ch.4 ────────────── │     │
-│  │ → toolResults[]                         │     │
-│  └──────────────┬──────────────────────────┘     │
-│                 │                                 │
-│                 ▼                                 │
-│  ┌─────────────────────────────────────────┐     │
-│  │ Phase 7: Attachment Injection            │     │
-│  │ getAttachmentMessages()                 │     │
-│  │ pendingMemoryPrefetch consume           │     │
-│  │ skillDiscoveryPrefetch consume          │     │
-│  │ queuedCommands drain                    │     │
-│  └──────────────┬──────────────────────────┘     │
-│                 │                                 │
-│                 ▼                                 │
-│  ┌─────────────────────────────────────────┐     │
-│  │ Phase 8: Continuation Decision           │     │
-│  │ maxTurns check                          │     │
-│  │ state = { reason: 'next_turn', ... }    │     │
-│  │ continue                                │     │
-│  └─────────────────────────────────────────┘     │
-│                                                  │
-└──────────────────────────────────────────────────┘
+│  yield { type: 'stream_request_start' }           │
+├───────────────────────────────────────────────────┤
+│                                                   │
+│   ┌──────────────────────────────────────────┐    │
+│   │ Phase 1: Context Preprocessing           │    │
+│   │ applyToolResultBudget                    │    │
+│   │ → snipCompact (HISTORY_SNIP)             │    │
+│   │ → microcompact                           │    │
+│   │ → contextCollapse (CONTEXT_COLLAPSE)     │    │
+│   │ → autocompact ───── See Ch.9 ──────────  │    │
+│   └──────────────┬───────────────────────────┘    │
+│                  │                                │
+│                  ▼                                │
+│   ┌──────────────────────────────────────────┐    │
+│   │ Phase 2: Blocking limit check            │    │
+│   │ token count > hard limit ?               │    │
+│   │   YES → return {reason:'blocking_limit'} │    │
+│   └──────────────┬───────────────────────────┘    │
+│                  │ NO                             │
+│                  ▼                                │
+│   ┌──────────────────────────────────────────┐    │
+│   │ Phase 3: API Call ── See Ch.5 & Ch.13 ── │    │
+│   │ attemptWithFallback loop                 │    │
+│   │ callModel({                              │    │
+│   │   messages: prependUserContext(...)      │    │
+│   │   systemPrompt: appendSystemContext(...) │    │
+│   │ })                                       │    │
+│   │                                          │    │
+│   │ Stream response → assistantMessages[]    │    │
+│   │                → toolUseBlocks[]         │    │
+│   │ FallbackTriggeredError → switch model    │    │
+│   └──────────────┬───────────────────────────┘    │
+│                  │                                │
+│                  ▼                                │
+│   ┌──────────────────────────────────────────┐    │
+│   │ Phase 4: Abort check                     │    │
+│   │ abortController.signal.aborted ?         │    │
+│   │   YES → return {reason:'aborted_*'}      │    │
+│   └──────────────┬───────────────────────────┘    │
+│                  │ NO                             │
+│                  ▼                                │
+│   ┌──────────────────────────────────────────┐    │
+│   │ Phase 5: needsFollowUp == false branch   │    │
+│   │ (model did not return tool_use)          │    │
+│   │                                          │    │
+│   │ ┌─ prompt-too-long recovery ───────────┐ │    │
+│   │ │ collapse drain → reactive compact    │ │    │
+│   │ │ Success → state=next; continue       │ │    │
+│   │ └──────────────────────────────────────┘ │    │
+│   │ ┌─ max_output_tokens recovery ─────────┐ │    │
+│   │ │ escalate(8k→64k) → recovery(×3)      │ │    │
+│   │ │ Success → state=next; continue       │ │    │
+│   │ └──────────────────────────────────────┘ │    │
+│   │ ┌─ stop hooks ── See Ch.16 ────────────┐ │    │
+│   │ │ blockingErrors → state=next;continue │ │    │
+│   │ └──────────────────────────────────────┘ │    │
+│   │ ┌─ token budget check ─────────────────┐ │    │
+│   │ │ budget remaining → state=next;       │ │    │
+│   │ │ continue                             │ │    │
+│   │ └──────────────────────────────────────┘ │    │
+│   │                                          │    │
+│   │ return { reason: 'completed' }           │    │
+│   └──────────────────────────────────────────┘    │
+│                  │                                │
+│            needsFollowUp == true                  │
+│                  │                                │
+│                  ▼                                │
+│   ┌──────────────────────────────────────────┐    │
+│   │ Phase 6: Tool Execution                  │    │
+│   │ streamingToolExecutor.getRemainingResults│    │
+│   │ or runTools() ── See Ch.4 ────────────── │    │
+│   │ → toolResults[]                          │    │
+│   └──────────────┬───────────────────────────┘    │
+│                  │                                │
+│                  ▼                                │
+│   ┌──────────────────────────────────────────┐    │
+│   │ Phase 7: Attachment Injection            │    │
+│   │ getAttachmentMessages()                  │    │
+│   │ pendingMemoryPrefetch consume            │    │
+│   │ skillDiscoveryPrefetch consume           │    │
+│   │ queuedCommands drain                     │    │
+│   └──────────────┬───────────────────────────┘    │
+│                  │                                │
+│                  ▼                                │
+│   ┌──────────────────────────────────────────┐    │
+│   │ Phase 8: Continuation Decision           │    │
+│   │ maxTurns check                           │    │
+│   │ state = { reason: 'next_turn', ... }     │    │
+│   │ continue                                 │    │
+│   └──────────────────────────────────────────┘    │
+│                                                   │
+└───────────────────────────────────────────────────┘
 ```
 
 </details>
@@ -509,59 +509,58 @@ API가 prompt-too-long 에러를 반환하면 복구 전략도 두 계층을 갖
 ## 3.5 단일 iteration sequence diagram
 
 ```
-User          queryLoop         PreProcess       API          Tools          StopHooks
- │                │                  │              │              │              │
- │   messages     │                  │              │              │              │
- │───────────────>│                  │              │              │              │
- │                │                  │              │              │              │
- │                │ applyToolResult  │              │              │              │
- │                │ Budget           │              │              │              │
- │                │─────────────────>│              │              │              │
- │                │                  │              │              │              │
- │                │  snipCompact     │              │              │              │
- │                │─────────────────>│              │              │              │
- │                │                  │              │              │              │
- │                │  microcompact    │              │              │              │
- │                │─────────────────>│              │              │              │
- │                │                  │              │              │              │
- │                │  contextCollapse │              │              │              │
- │                │─────────────────>│              │              │              │
- │                │                  │              │              │              │
- │                │  autocompact     │              │              │              │
- │                │─────────────────>│              │              │              │
- │                │  messagesForQuery│              │              │              │
- │                │<─────────────────│              │              │              │
- │                │                  │              │              │              │
- │                │ prependUserContext               │              │              │
- │                │ appendSystemContext              │              │              │
- │                │                  │              │              │              │
- │                │  callModel(...)  │              │              │              │
- │                │────────────────────────────────>│              │              │
- │                │                  │              │              │              │
- │                │  stream messages │              │              │              │
- │<───────────────│<────────────────────────────────│              │              │
- │  (yield)       │                  │              │              │              │
- │                │                  │              │  tool_use?   │              │
- │                │                  │              │              │              │
- │                │──────── needsFollowUp ─────────────────────────>│              │
- │                │         runTools / StreamingToolExecutor        │              │
- │<───────────────│<───────────────────────────────────────────────│              │
- │  (yield results)                  │              │              │              │
- │                │                  │              │              │              │
- │                │  attachments (memory, skills, commands)        │              │
- │                │                  │              │              │              │
- │                │   state = { reason: 'next_turn', ... }        │              │
- │                │   continue ──────────────────────────> next iteration         │
- │                │                  │              │              │              │
- │          ──── OR ── needsFollowUp == false ────────────────────>│              │
- │                │                  │              │              │              │
- │                │  handleStopHooks │              │              │              │
- │                │────────────────────────────────────────────────────────────>│
- │                │  blockingErrors? │              │              │              │
- │                │<───────────────────────────────────────────────────────────│
- │                │                  │              │              │              │
- │                │  return { reason: 'completed' }│              │              │
- │<───────────────│                  │              │              │              │
+User            queryLoop          PreProcess            API             Tools         StopHooks
+ │                  │                    │                  │              │              │
+ │    messages      │                    │                  │              │              │
+ │─────────────────>│                    │                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │ applyToolResult    │                  │              │              │
+ │                  │ Budget             │                  │              │              │
+ │                  │───────────────────>│                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │   snipCompact      │                  │              │              │
+ │                  │───────────────────>│                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │   microcompact     │                  │              │              │
+ │                  │───────────────────>│                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │  contextCollapse   │                  │              │              │
+ │                  │───────────────────>│                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │   autocompact      │                  │              │              │
+ │                  │───────────────────>│                  │              │              │
+ │                  │ messagesForQuery   │                  │              │              │
+ │                  │<───────────────────│                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │ prependUserContext │                  │              │              │
+ │                  │ appendSystemContext│                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │  callModel(...)    │                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │  stream messages   │                  │              │              │
+ │<─────────────────│<──────────────────────────────────────│              │              │
+ │  (yield)         │                    │                  │              │              │
+ │                  │                    │                  │  tool_use?   │              │
+ │                  │                    │                  │              │              │
+ │                  │────────────── needsFollowUp ────────────────────────>│              │
+ │                  │           runTools / StreamingToolExecutor           │              │
+ │<─────────────────│<─────────────────────────────────────────────────────│              │
+ │  (yield results)                      │                  │              │              │
+ │                  │                    │                  │              │              │
+ │                  │     attachments (memory, skills, commands)           │              │
+ │                  │                    │                  │              │              │
+ │                  │     state = { reason: 'next_turn', ... }             │              │
+ │                  │     continue ──────────────────────────> next iteration             │
+ │                  │                    │                  │              │              │
+ │            ──── OR ──── needsFollowUp == false ────────────────────────>│              │
+ │                  │                    │                  │              │              │
+ │                  │   handleStopHooks  │                  │              │              │
+ │                  │────────────────────────────────────────────────────────────────────>│
+ │                  │   blockingErrors?  │                  │              │              │
+ │                  │<────────────────────────────────────────────────────────────────────│
+ │                  │                    │                  │              │              │
+ │                  │    return { reason: 'completed' }     │              │              │
+ │<─────────────────│                    │                  │              │              │
 ```
 
 ## 3.6 패턴 추출 (Pattern Extraction)
