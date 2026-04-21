@@ -1,0 +1,18 @@
+[book]
+title = "Harness Engineering: Claude Code 내부 구조에서 AI 코딩 모범 사례까지"
+authors = ["Alex (ZhangHanDong)", "nyang-police (한국어 번역)"]
+language = "ko"
+src = "."
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/nyang-police/harness-engineering-ko"
+edit-url-template = "https://github.com/nyang-police/harness-engineering-ko/edit/main/{path}"
+additional-js = ["theme/mermaid-init.js"]
+
+[output.html.search]
+enable = true
