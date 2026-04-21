@@ -38,30 +38,29 @@ type SystemPromptSection = {
 - **`DANGEROUS_uncachedSystemPromptSection(name, compute, reason)`** — **Volatile section**을 생성한다. Compute 함수는 resolve될 때마다 다시 실행된다. `DANGEROUS_` 접두어와 필수 `reason` 파라미터는 의도적인 API friction으로, 이런 유형의 section이 **prompt caching을 깨뜨린다**는 사실을 개발자에게 상기시킨다.
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│                      Section Registry                                 │
-│                                                                       │
-│  ┌─────────────────────┐   ┌──────────────────────────────────────┐  │
-│  │ systemPromptSection │   │ DANGEROUS_uncachedSystemPromptSection│  │
-│  │   cacheBreak=false  │   │         cacheBreak=true              │  │
-│  └────────┬────────────┘   └────────────┬─────────────────────────┘  │
-│           │                              │                            │
-│           ▼                              ▼                            │
-│  ┌─────────────────────────────────────────────────────────────────┐  │
-│  │            resolveSystemPromptSections(sections)                │  │
-│  │                                                                 │  │
-│  │  for each section:                                              │  │
-│  │    if (!cacheBreak && cache.has(name)):                         │  │
-│  │      return cache.get(name)    ← memoization hit               │  │
-│  │    else:                                                        │  │
-│  │      value = await compute()                                    │  │
-│  │      cache.set(name, value)    ← write to cache                │  │
-│  │      return value                                               │  │
-│  └─────────────────────────────────────────────────────────────────┘  │
-│                                                                       │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                      Section Registry                                     │
+│                                                                           │
+│    ┌─────────────────────┐   ┌──────────────────────────────────────┐     │
+│    │ systemPromptSection │   │ DANGEROUS_uncachedSystemPromptSection│     │
+│    │   cacheBreak=false  │   │         cacheBreak=true              │     │
+│    └────────┬────────────┘   └────────────┬─────────────────────────┘     │
+│             │                              │                              │
+│             ▼                              ▼                              │
+│    ┌─────────────────────────────────────────────────────────────────┐    │
+│    │            resolveSystemPromptSections(sections)                │    │
+│    │  for each section:                                              │    │
+│    │    if (!cacheBreak && cache.has(name)):                         │    │
+│    │      return cache.get(name)    ← memoization hit                │    │
+│    │    else:                                                        │    │
+│    │      value = await compute()                                    │    │
+│    │      cache.set(name, value)    ← write to cache                 │    │
+│    │      return value                                               │    │
+│    └─────────────────────────────────────────────────────────────────┘    │
+│                                                                           │
 │  Cache storage: STATE.systemPromptSectionCache (Map<string, string|null>) │
-│  Reset timing: /clear, /compact → clearSystemPromptSections()        │
-└───────────────────────────────────────────────────────────────────────┘
+│  Reset timing: /clear, /compact → clearSystemPromptSections()             │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Figure 5-1: Section Registry의 memoization 흐름.** Memoized section(`cacheBreak=false`)은 첫 계산 후 전역 Map에 캐시되고, volatile section(`cacheBreak=true`)은 매번 재계산된다.
